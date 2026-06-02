@@ -1,0 +1,1128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OneInbox — Unified Mail Reader</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0e1117;--bg2:#131720;--bg3:#1a2030;--bg4:#212840;
+  --border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.14);
+  --text:#e8eaf2;--text2:#8b91a8;--text3:#4e5570;
+  --gmail:#ea4335;--gmail-dim:rgba(234,67,53,0.13);
+  --zoho:#e3780c;--zoho-dim:rgba(227,120,12,0.13);
+  --accent:#6c8fff;--accent-dim:rgba(108,143,255,0.13);
+  --green:#3ecf8e;--green-dim:rgba(62,207,142,0.11);
+  --star:#f5c518;--red:#f87171;--red-dim:rgba(248,113,113,0.13);
+  --orange:#fb923c;--orange-dim:rgba(251,146,60,0.12);
+  --sans:'DM Sans',sans-serif;--mono:'DM Mono',monospace;
+  --serif:'Instrument Serif',Georgia,serif;
+}
+html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14px}
+.shell{display:flex;height:100vh;overflow:hidden}
+
+/* ── SIDEBAR ── */
+.sidebar{width:270px;flex-shrink:0;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden}
+.sidebar-logo{padding:18px 16px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px}
+.logo-mark{width:30px;height:30px;border-radius:8px;background:var(--accent);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.logo-mark svg{width:16px;height:16px;color:#fff}
+.logo-name{font-size:15px;font-weight:600;color:var(--text);line-height:1.2}
+.logo-tag{font-size:10px;color:var(--text3);font-family:var(--mono);letter-spacing:.06em}
+.sb-scroll{flex:1;overflow-y:auto;overflow-x:hidden}
+.sb-scroll::-webkit-scrollbar{width:3px}
+.sb-scroll::-webkit-scrollbar-thumb{background:var(--border2);border-radius:4px}
+.sec-lbl{padding:16px 14px 5px;font-size:10px;font-weight:700;letter-spacing:.14em;color:var(--text3);display:flex;align-items:center;justify-content:space-between}
+.sec-lbl button{background:none;border:none;cursor:pointer;color:var(--text3);display:flex;padding:2px;border-radius:4px;transition:color .15s}
+.sec-lbl button:hover{color:var(--text2)}
+.nav-btn{display:flex;align-items:center;gap:9px;padding:8px 12px;margin:0 4px 1px;border-radius:8px;cursor:pointer;font-size:13px;color:var(--text2);transition:background .15s,color .15s;border:none;background:none;text-align:left;width:calc(100% - 8px);font-family:var(--sans)}
+.nav-btn:hover{background:var(--bg3);color:var(--text)}
+.nav-btn.active{background:var(--accent-dim);color:var(--accent)}
+.nav-btn svg{width:14px;height:14px;flex-shrink:0}
+.nav-btn .nbc{margin-left:auto;font-size:10.5px;font-family:var(--mono);background:var(--bg4);color:var(--text3);padding:1px 6px;border-radius:20px}
+.nav-btn.active .nbc{background:var(--accent-dim);color:var(--accent)}
+.acc-cards{padding:5px 6px 3px;display:flex;flex-direction:column;gap:4px}
+.acc-card{display:flex;align-items:center;gap:9px;padding:9px 11px;border-radius:10px;background:var(--bg3);border:1px solid var(--border);cursor:pointer;transition:border-color .15s}
+.acc-card:hover{border-color:var(--border2)}
+.acc-card.connected{border-color:rgba(62,207,142,.25)}
+.acc-card.error{border-color:rgba(248,113,113,.25)}
+.acc-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.dot-g{background:var(--gmail)}.dot-z{background:var(--zoho)}
+.acc-info{flex:1;min-width:0}
+.acc-email{font-size:11.5px;font-weight:500;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.acc-sub{font-size:10px;margin-top:1px}
+.acc-sub.ok{color:var(--green)}.acc-sub.err{color:var(--red)}.acc-sub.none{color:var(--text3)}
+.acc-badge{font-size:10px;font-family:var(--mono);padding:2px 6px;border-radius:4px;flex-shrink:0}
+.bg-g{background:var(--gmail-dim);color:var(--gmail)}.bg-z{background:var(--zoho-dim);color:var(--zoho)}
+.sync-bar{padding:7px 10px;border-top:1px solid var(--border)}
+.sync-row{display:flex;align-items:center;gap:7px;font-size:10.5px;color:var(--text3)}
+.sdot{width:6px;height:6px;border-radius:50%;background:var(--text3);flex-shrink:0}
+.sdot.ok{background:var(--green)}.sdot.err{background:var(--red)}.sdot.spin{background:var(--orange);animation:pulse 1s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+.sb-footer{padding:11px 10px;border-top:1px solid var(--border);display:flex;align-items:center;gap:9px}
+.s-av{width:30px;height:30px;border-radius:50%;background:var(--accent-dim);border:1px solid var(--accent);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;color:var(--accent);flex-shrink:0}
+.s-fn{font-size:12px;font-weight:500;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.s-fs{font-size:10.5px;color:var(--text3)}
+.ib{background:none;border:none;cursor:pointer;color:var(--text3);display:flex;align-items:center;padding:4px;border-radius:5px;transition:color .15s}
+.ib:hover{color:var(--text2)}
+
+/* ── LIST PANEL ── */
+.list-panel{width:328px;flex-shrink:0;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden}
+.list-head{padding:13px 13px 10px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:7px;flex-shrink:0}
+.list-title{font-size:14.5px;font-weight:600;flex:1;color:var(--text)}
+.list-ct{font-size:10.5px;font-family:var(--mono);color:var(--text3)}
+.rfb{width:27px;height:27px;border-radius:7px;background:var(--bg3);border:1px solid var(--border);cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--text2);transition:all .15s;flex-shrink:0}
+.rfb:hover{border-color:var(--border2);color:var(--text)}
+.rfb svg{width:13px;height:13px}
+.rfb.spinning svg{animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.addb{width:27px;height:27px;border-radius:7px;background:var(--accent);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#fff;transition:opacity .15s;flex-shrink:0}
+.addb:hover{opacity:.85}
+.addb svg{width:13px;height:13px}
+.srchbar{padding:7px 11px;border-bottom:1px solid var(--border);flex-shrink:0}
+.srchw{display:flex;align-items:center;gap:7px;background:var(--bg3);border:1px solid var(--border);border-radius:7px;padding:6px 10px;transition:border-color .15s}
+.srchw:focus-within{border-color:var(--border2)}
+.srchw svg{width:12px;height:12px;color:var(--text3);flex-shrink:0}
+.srchw input{background:none;border:none;outline:none;font-family:var(--sans);font-size:12.5px;color:var(--text);width:100%}
+.srchw input::placeholder{color:var(--text3)}
+.pill-row{padding:6px 11px 7px;display:flex;gap:4px;flex-shrink:0;border-bottom:1px solid var(--border);overflow-x:auto}
+.pill-row::-webkit-scrollbar{display:none}
+.tpill{font-size:10.5px;padding:3px 9px;border-radius:20px;border:1px solid var(--border);background:none;color:var(--text2);cursor:pointer;white-space:nowrap;transition:all .15s;font-family:var(--sans)}
+.tpill:hover{border-color:var(--border2);color:var(--text)}
+.tpill.active{background:var(--accent-dim);border-color:var(--accent);color:var(--accent)}
+.fetch-banner{display:none;padding:7px 13px;background:rgba(108,143,255,.07);border-bottom:1px solid rgba(108,143,255,.15);font-size:11.5px;color:var(--accent);align-items:center;gap:8px;flex-shrink:0}
+.fetch-banner.show{display:flex}
+.fbs svg{animation:spin .7s linear infinite;width:12px;height:12px}
+.email-list{flex:1;overflow-y:auto}
+.email-list::-webkit-scrollbar{width:3px}
+.email-list::-webkit-scrollbar-thumb{background:var(--border2);border-radius:4px}
+.ei{padding:12px 13px 10px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .12s;position:relative;border-left:2px solid transparent}
+.ei:hover{background:var(--bg3)}
+.ei.sel{background:var(--bg3);border-left-color:var(--accent)}
+.ei.unread .ei-sndr{color:var(--text);font-weight:600}
+.udot{position:absolute;top:15px;left:4px;width:5px;height:5px;border-radius:50%;background:var(--accent);display:none}
+.ei.unread .udot{display:block}
+.ei-top{display:flex;align-items:center;gap:6px;margin-bottom:3px}
+.ei-src{font-size:9px;font-weight:700;letter-spacing:.06em;padding:2px 5px;border-radius:3px;flex-shrink:0}
+.sg{background:var(--gmail-dim);color:var(--gmail)}.sz{background:var(--zoho-dim);color:var(--zoho)}
+.ei-sndr{font-size:12.5px;color:var(--text2);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ei-time{font-size:10.5px;color:var(--text3);font-family:var(--mono);flex-shrink:0}
+.ei-star{background:none;border:none;cursor:pointer;padding:0;line-height:1;flex-shrink:0;font-size:12px;opacity:.3;transition:opacity .15s;color:var(--text2)}
+.ei-star:hover,.ei-star.on{opacity:1}.ei-star.on{color:var(--star)}
+.ei-subj{font-size:12.5px;color:var(--text);margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ei-prev{font-size:11px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ei-tags{display:flex;gap:3px;margin-top:4px}
+.eit{font-size:9.5px;padding:1px 6px;border-radius:3px;background:var(--bg4);color:var(--text3)}
+
+/* ── READING PANE ── */
+.rpane{flex:1;overflow:hidden;display:flex;flex-direction:column;background:var(--bg)}
+.rtb{padding:10px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:7px;flex-shrink:0}
+.tbb{display:flex;align-items:center;gap:5px;background:none;border:1px solid var(--border);border-radius:7px;padding:5px 10px;font-size:11.5px;color:var(--text2);cursor:pointer;font-family:var(--sans);transition:all .15s;white-space:nowrap}
+.tbb:hover{border-color:var(--border2);color:var(--text)}
+.tbb svg{width:12px;height:12px}
+.tbb.del:hover{border-color:var(--red-dim);color:var(--red)}
+.tbsep{width:1px;height:16px;background:var(--border);margin:0 2px}
+.rbody{flex:1;overflow-y:auto;padding:28px 40px 20px}
+.rbody::-webkit-scrollbar{width:4px}
+.rbody::-webkit-scrollbar-thumb{background:var(--border2);border-radius:4px}
+.rmb{display:flex;align-items:flex-start;gap:13px;margin-bottom:22px;padding-bottom:20px;border-bottom:1px solid var(--border)}
+.rav{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;flex-shrink:0}
+.rmi{flex:1;min-width:0}
+.rmt{display:flex;align-items:center;gap:8px;margin-bottom:4px;flex-wrap:wrap}
+.rname{font-size:14.5px;font-weight:600;color:var(--text)}
+.rsrc{font-size:10px;font-weight:700;letter-spacing:.06em;padding:2px 7px;border-radius:4px}
+.reml{font-size:11.5px;color:var(--text2);margin-bottom:3px}
+.rtime{font-size:11.5px;color:var(--text3);display:flex;align-items:center;gap:4px}
+.rsubj{font-family:var(--serif);font-size:21px;line-height:1.3;color:var(--text);margin-bottom:20px;letter-spacing:-.01em}
+.rbodytext{font-size:13.5px;line-height:1.85;color:var(--text2);max-width:640px;white-space:pre-wrap;word-break:break-word}
+.atts{display:flex;gap:7px;flex-wrap:wrap;margin-top:22px;padding-top:16px;border-top:1px solid var(--border)}
+.attc{display:flex;align-items:center;gap:6px;background:var(--bg3);border:1px solid var(--border);border-radius:7px;padding:6px 11px;font-size:11.5px;color:var(--text2)}
+.attc svg{width:12px;height:12px;color:var(--accent)}
+.attsz{font-size:10.5px;color:var(--text3);font-family:var(--mono)}
+.replybox{border-top:1px solid var(--border);padding:13px 20px;flex-shrink:0;background:var(--bg2)}
+.replylbl{font-size:10px;font-weight:700;letter-spacing:.1em;color:var(--text3);margin-bottom:7px}
+.replyto{font-size:11px;color:var(--text3);margin-bottom:7px;padding:4px 9px;background:var(--bg3);border-radius:5px}
+.replyto span{color:var(--text2)}
+.replyta{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:7px;color:var(--text);font-family:var(--sans);font-size:12.5px;padding:9px 11px;outline:none;resize:none;min-height:72px;transition:border-color .15s}
+.replyta:focus{border-color:rgba(108,143,255,.4)}
+.replyta::placeholder{color:var(--text3)}
+.replyfoot{display:flex;align-items:center;justify-content:space-between;margin-top:8px}
+.rphint{font-size:10.5px;color:var(--text3)}
+.sendbtn{background:var(--accent);border:none;border-radius:7px;color:#fff;font-family:var(--sans);font-size:12.5px;font-weight:600;padding:7px 18px;cursor:pointer;display:flex;align-items:center;gap:5px;transition:opacity .15s}
+.sendbtn:hover{opacity:.87}
+.empty-st{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;color:var(--text3)}
+.empty-st svg{width:42px;height:42px;opacity:.18}
+.empty-st p{font-size:13px}
+
+/* ── MODALS ── */
+.mbg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.74);z-index:1000;align-items:center;justify-content:center}
+.mbg.open{display:flex}
+.mbox{background:#1a2030;border:1px solid var(--border2);border-radius:16px;padding:26px;width:560px;max-width:96vw;max-height:92vh;overflow-y:auto}
+.mbox::-webkit-scrollbar{width:3px}
+.mbox::-webkit-scrollbar-thumb{background:var(--border2);border-radius:4px}
+.mhead{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:5px}
+.mtitle{font-size:15.5px;font-weight:600;color:var(--text)}
+.mdesc{font-size:12px;color:var(--text3);line-height:1.6;margin-bottom:20px}
+.mx{background:none;border:none;color:var(--text3);cursor:pointer;font-size:21px;line-height:1;padding:0;transition:color .15s}
+.mx:hover{color:var(--text2)}
+.fl{display:flex;flex-direction:column;gap:4px;margin-bottom:11px}
+.fl label{font-size:10.5px;font-weight:700;letter-spacing:.08em;color:var(--text3)}
+.fi{width:100%;background:#0e1117;border:1px solid var(--border);border-radius:7px;color:var(--text);font-family:var(--sans);font-size:12.5px;padding:8px 11px;outline:none;transition:border-color .15s}
+.fi:focus{border-color:rgba(108,143,255,.45)}
+.fi::placeholder{color:var(--text3)}
+.fta{width:100%;background:#0e1117;border:1px solid var(--border);border-radius:7px;color:var(--text);font-family:var(--sans);font-size:12.5px;padding:8px 11px;outline:none;resize:vertical;min-height:88px;transition:border-color .15s}
+.fta:focus{border-color:rgba(108,143,255,.45)}
+.fta::placeholder{color:var(--text3)}
+.fsel{width:100%;background:#0e1117;border:1px solid var(--border);border-radius:7px;color:var(--text);font-family:var(--sans);font-size:12.5px;padding:8px 9px;outline:none}
+.fsel option{background:#131720}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.mfoot{display:flex;gap:8px;justify-content:flex-end;margin-top:18px}
+.bcnl{background:none;border:1px solid var(--border2);border-radius:7px;color:var(--text2);font-family:var(--sans);font-size:12.5px;padding:8px 16px;cursor:pointer;transition:all .15s}
+.bcnl:hover{color:var(--text)}
+.bsave{background:var(--accent);border:none;border-radius:7px;color:#fff;font-family:var(--sans);font-size:12.5px;font-weight:600;padding:8px 20px;cursor:pointer;transition:opacity .15s}
+.bsave:hover{opacity:.88}
+
+/* account config sections */
+.asec{background:#131720;border:1px solid var(--border);border-radius:12px;padding:16px 18px;margin-bottom:11px}
+.ashead{display:flex;align-items:center;gap:8px;margin-bottom:14px}
+.asdot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.astitle{font-size:11px;font-weight:700;letter-spacing:.1em}
+.aspill{margin-left:auto;font-size:10px;padding:2px 9px;border-radius:20px;font-weight:600}
+.asp-none{background:rgba(77,95,128,.2);color:var(--text3)}
+.asp-ok{background:var(--green-dim);color:var(--green)}
+.asp-err{background:var(--red-dim);color:var(--red)}
+.asp-ing{background:var(--orange-dim);color:var(--orange)}
+
+/* Google sign-in button */
+.google-btn{display:flex;align-items:center;gap:10px;background:#fff;border:1px solid #dadce0;border-radius:8px;padding:9px 16px;cursor:pointer;font-family:var(--sans);font-size:13px;font-weight:500;color:#3c4043;width:100%;justify-content:center;transition:box-shadow .15s,background .15s;margin-bottom:10px}
+.google-btn:hover{box-shadow:0 1px 6px rgba(0,0,0,.25);background:#f8f9fa}
+.google-btn:disabled{opacity:.55;cursor:not-allowed}
+.google-btn svg{width:18px;height:18px;flex-shrink:0}
+.google-btn.connected{background:#0e1117;border-color:rgba(62,207,142,.3);color:var(--green)}
+
+.conn-row{display:flex;align-items:center;gap:9px;padding:8px 11px;border-radius:8px;background:var(--bg4);margin-top:4px}
+.crdot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.crdot.none{background:var(--text3)}.crdot.ok{background:var(--green)}.crdot.err{background:var(--red)}.crdot.ing{background:var(--orange);animation:pulse 1s infinite}
+.crtext{font-size:11.5px;flex:1}
+.crtext.ok{color:var(--green)}.crtext.err{color:var(--red)}.crtext.ing{color:var(--orange)}.crtext.none{color:var(--text3)}
+.disc-btn{background:none;border:1px solid var(--red-dim);border-radius:5px;color:var(--red);font-family:var(--sans);font-size:10.5px;padding:3px 9px;cursor:pointer;transition:all .15s}
+.disc-btn:hover{background:var(--red-dim)}
+
+.hint-box{background:#0e1117;border:1px solid var(--border);border-radius:9px;padding:11px 14px;margin-bottom:10px}
+.hint-box p{font-size:11px;color:var(--text3);line-height:1.7}
+.hint-box code{font-family:var(--mono);font-size:10.5px;color:var(--accent);background:var(--accent-dim);padding:1px 5px;border-radius:3px}
+.hint-box a{color:var(--accent);text-decoration:none}
+.hint-box a:hover{text-decoration:underline}
+.hint-box ol{padding-left:16px;margin-top:6px}
+.hint-box li{margin-bottom:3px}
+.zoho-test-btn{display:flex;align-items:center;gap:7px;background:var(--bg4);border:1px solid var(--border);border-radius:8px;padding:8px 14px;cursor:pointer;font-family:var(--sans);font-size:12.5px;color:var(--text2);width:100%;justify-content:center;transition:all .15s;margin-bottom:10px}
+.zoho-test-btn:hover{border-color:var(--border2);color:var(--text)}
+.zoho-test-btn.testing svg{animation:spin .7s linear infinite}
+
+/* setup screen */
+.setup-screen{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;padding:40px;background:var(--bg)}
+.setup-icon{width:56px;height:56px;border-radius:16px;background:var(--accent-dim);border:1px solid var(--accent);display:flex;align-items:center;justify-content:center;margin-bottom:20px}
+.setup-icon svg{width:28px;height:28px;color:var(--accent)}
+.setup-title{font-size:22px;font-weight:600;color:var(--text);margin-bottom:8px;text-align:center}
+.setup-desc{font-size:13.5px;color:var(--text2);text-align:center;max-width:420px;line-height:1.65;margin-bottom:28px}
+.setup-connect-btn{display:flex;align-items:center;gap:10px;background:var(--accent);border:none;border-radius:10px;padding:13px 26px;cursor:pointer;font-family:var(--sans);font-size:14px;font-weight:600;color:#fff;transition:opacity .15s}
+.setup-connect-btn:hover{opacity:.88}
+.setup-connect-btn svg{width:18px;height:18px}
+.setup-note{font-size:11.5px;color:var(--text3);margin-top:16px;text-align:center}
+
+/* toasts */
+#toasts{position:fixed;bottom:18px;right:18px;z-index:9999;display:flex;flex-direction:column;gap:6px;pointer-events:none}
+.toast{background:var(--bg3);border:1px solid var(--border2);border-radius:9px;padding:9px 13px;font-size:12px;color:var(--text2);display:flex;align-items:center;gap:7px;box-shadow:0 8px 28px rgba(0,0,0,.45);pointer-events:all;animation:tIn .22s ease;max-width:340px}
+@keyframes tIn{from{opacity:0;transform:translateX(10px)}to{opacity:1;transform:translateX(0)}}
+.tdot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.t-ok .tdot{background:var(--green)}.t-err .tdot{background:var(--red)}.t-info .tdot{background:var(--accent)}.t-warn .tdot{background:var(--orange)}
+</style>
+</head>
+<body>
+<div id="toasts"></div>
+<div class="shell">
+
+<!-- ════════ SIDEBAR ════════ -->
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-mark">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+    </div>
+    <div>
+      <div class="logo-name">OneInbox</div>
+      <div class="logo-tag">UNIFIED MAIL READER</div>
+    </div>
+  </div>
+
+  <div class="sb-scroll">
+    <div class="sec-lbl">MAILBOXES</div>
+    <nav id="nav-menu">
+      <button class="nav-btn active" data-f="all">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+        All Inbox <span class="nbc" id="c-all">0</span>
+      </button>
+      <button class="nav-btn" data-f="unread">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        Unread <span class="nbc" id="c-unread">0</span>
+      </button>
+      <button class="nav-btn" data-f="starred">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+        Starred <span class="nbc" id="c-starred">0</span>
+      </button>
+      <button class="nav-btn" data-f="gmail">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+        Gmail <span class="nbc" id="c-gmail">0</span>
+      </button>
+      <button class="nav-btn" data-f="zoho">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        Zoho Mail <span class="nbc" id="c-zoho">0</span>
+      </button>
+    </nav>
+
+    <div class="sec-lbl">
+      ACCOUNTS
+      <button onclick="openAccModal()" title="Configure accounts">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      </button>
+    </div>
+    <div class="acc-cards" id="acc-cards"></div>
+
+    <div class="sync-bar">
+      <div class="sync-row">
+        <div class="sdot" id="sdot"></div>
+        <span id="stext">Not synced</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="sb-footer">
+    <div class="s-av" id="s-av">YN</div>
+    <div style="flex:1;min-width:0">
+      <div class="s-fn" id="s-fn">Your Name</div>
+      <div class="s-fs" id="s-fs">No accounts connected</div>
+    </div>
+    <button class="ib" onclick="openAccModal()" title="Settings">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+    </button>
+  </div>
+</aside>
+
+<!-- ════════ LIST PANEL ════════ -->
+<div class="list-panel">
+  <div class="list-head">
+    <span class="list-title" id="list-title">All Inbox</span>
+    <span class="list-ct" id="list-ct"></span>
+    <button class="rfb" id="rfb" onclick="doRefresh()" title="Fetch new emails from connected accounts">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+    </button>
+    <button class="addb" onclick="openAddModal()" title="Add email manually">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+    </button>
+  </div>
+
+  <div class="fetch-banner" id="fbanner">
+    <span class="fbs"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg></span>
+    <span id="fmsg">Fetching…</span>
+  </div>
+
+  <div class="srchbar">
+    <div class="srchw">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="text" id="srch" placeholder="Search emails…" oninput="renderList()">
+    </div>
+  </div>
+  <div class="pill-row" id="pills">
+    <button class="tpill active" data-tag="all">All</button>
+    <button class="tpill" data-tag="work">Work</button>
+    <button class="tpill" data-tag="finance">Finance</button>
+    <button class="tpill" data-tag="legal">Legal</button>
+    <button class="tpill" data-tag="security">Security</button>
+    <button class="tpill" data-tag="personal">Personal</button>
+  </div>
+  <div class="email-list" id="elist"></div>
+</div>
+
+<!-- ════════ READING PANE ════════ -->
+<div class="rpane">
+  <div class="rtb" id="rtb" style="display:none">
+    <button class="tbb" onclick="actUnread()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/></svg> Mark unread
+    </button>
+    <button class="tbb" id="tb-star" onclick="actStar()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg> Star
+    </button>
+    <div class="tbsep"></div>
+    <button class="tbb" onclick="actCopy()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Copy
+    </button>
+    <button class="tbb del" onclick="actDelete()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg> Delete
+    </button>
+    <div style="margin-left:auto">
+      <button class="tbb" onclick="actReply()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 17 4 12 9 7"/><path d="M20 18v-2a4 4 0 0 0-4-4H4"/></svg> Reply
+      </button>
+    </div>
+  </div>
+  <div id="rcontent" style="flex:1;display:flex;flex-direction:column;overflow:hidden">
+    <div class="empty-st">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M4 4h16c1.1 0 2 .9 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+      <p>Select an email to read</p>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ══════════════════════════════════════
+     ACCOUNTS MODAL
+════════════════════════════════════════ -->
+<div class="mbg" id="acc-modal">
+<div class="mbox" style="width:560px">
+  <div class="mhead">
+    <div>
+      <div class="mtitle">Connect Email Accounts</div>
+      <div class="mdesc">Sign in with Google for Gmail, or enter your Zoho OAuth token to connect Zoho Mail.</div>
+    </div>
+    <button class="mx" onclick="closeAccModal()">×</button>
+  </div>
+
+  <!-- ── GMAIL ── -->
+  <div class="asec">
+    <div class="ashead">
+      <div class="asdot" style="background:var(--gmail)"></div>
+      <span class="astitle" style="color:var(--gmail)">GMAIL</span>
+      <span class="aspill asp-none" id="gm-pill">Not connected</span>
+    </div>
+
+    <!-- Client ID field -->
+    <div class="fl" id="gm-cid-row">
+      <label>GOOGLE OAUTH CLIENT ID <span style="color:var(--text3);font-weight:400">(required once)</span></label>
+      <input class="fi" id="gm-cid" type="text" placeholder="123456789-abc.apps.googleusercontent.com">
+    </div>
+
+    <div class="hint-box" id="gm-hint">
+      <p><strong style="color:var(--text2)">How to get your Client ID (one-time setup):</strong>
+      <ol>
+        <li>Go to <a href="https://console.cloud.google.com/" target="_blank">Google Cloud Console</a> → Create / select a project</li>
+        <li>APIs &amp; Services → Enable <strong>Gmail API</strong></li>
+        <li>Credentials → Create OAuth 2.0 Client ID → <strong>Web application</strong></li>
+        <li>Add <code id="gm-redirect-hint">this page URL</code> to Authorized redirect URIs</li>
+        <li>Copy the Client ID and paste above</li>
+      </ol>
+      </p>
+    </div>
+
+    <button class="google-btn" id="gm-signin-btn" onclick="gmailSignIn()">
+      <svg viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.33 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.36-8.16 2.36-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.67 14.62 48 24 48z"/><path fill="none" d="M0 0h48v48H0z"/></svg>
+      Sign in with Google
+    </button>
+
+    <div class="conn-row" id="gm-conn-row">
+      <div class="crdot none" id="gm-cdot"></div>
+      <span class="crtext none" id="gm-ctext">Not connected</span>
+      <button class="disc-btn" id="gm-disc" onclick="disconnectGmail()" style="display:none">Disconnect</button>
+    </div>
+  </div>
+
+  <!-- ── ZOHO ── -->
+  <div class="asec">
+    <div class="ashead">
+      <div class="asdot" style="background:var(--zoho)"></div>
+      <span class="astitle" style="color:var(--zoho)">ZOHO MAIL</span>
+      <span class="aspill asp-none" id="zh-pill">Not connected</span>
+    </div>
+
+    <div class="fl">
+      <label>YOUR ZOHO EMAIL ADDRESS</label>
+      <input class="fi" id="zh-email" type="email" placeholder="yourname@zohomail.com">
+    </div>
+    <div class="fl">
+      <label>ZOHO OAUTH ACCESS TOKEN *</label>
+      <input class="fi" id="zh-token" type="password" placeholder="1000.xxxxxxxxxxxx…">
+    </div>
+    <div class="fl" id="zh-accid-row">
+      <label>ZOHO ACCOUNT ID <span style="color:var(--text3);font-weight:400">(auto-detected on test)</span></label>
+      <input class="fi" id="zh-accid" type="text" placeholder="e.g. 123456789">
+    </div>
+
+    <div class="hint-box">
+      <p><strong style="color:var(--text2)">How to get Zoho access token:</strong>
+      <ol>
+        <li>Go to <a href="https://api-console.zoho.com/" target="_blank">Zoho API Console</a> → Create Server-based app</li>
+        <li>Add scope: <code>ZohoMail.messages.READ,ZohoMail.accounts.READ</code></li>
+        <li>Generate Authorization Code → Exchange for Access Token</li>
+        <li>Paste the <strong>Access Token</strong> above (starts with <code>1000.</code>)</li>
+      </ol>
+      </p>
+    </div>
+
+    <button class="zoho-test-btn" id="zh-test-btn" onclick="testZoho()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+      Test Zoho Connection
+    </button>
+
+    <div class="conn-row" id="zh-conn-row">
+      <div class="crdot none" id="zh-cdot"></div>
+      <span class="crtext none" id="zh-ctext">Not connected</span>
+      <button class="disc-btn" id="zh-disc" onclick="disconnectZoho()" style="display:none">Disconnect</button>
+    </div>
+  </div>
+
+  <div class="mfoot">
+    <button class="bcnl" onclick="closeAccModal()">Close</button>
+    <button class="bsave" onclick="saveAndClose()">Save & Close</button>
+  </div>
+</div>
+</div>
+
+<!-- ════════ ADD EMAIL MODAL ════════ -->
+<div class="mbg" id="add-modal">
+<div class="mbox">
+  <div class="mhead">
+    <div><div class="mtitle">Add Email Manually</div><div class="mdesc">Paste any email into your unified inbox.</div></div>
+    <button class="mx" onclick="closeAddModal()">×</button>
+  </div>
+  <div class="g2">
+    <div class="fl"><label>SOURCE *</label>
+      <select class="fsel" id="m-src"><option value="Gmail">Gmail</option><option value="Zoho">Zoho Mail</option></select>
+    </div>
+    <div class="fl"><label>TAG</label>
+      <select class="fsel" id="m-tag">
+        <option value="work">Work</option><option value="finance">Finance</option>
+        <option value="legal">Legal</option><option value="security">Security</option><option value="personal">Personal</option>
+      </select>
+    </div>
+  </div>
+  <div class="fl"><label>FROM NAME *</label><input class="fi" id="m-name" type="text" placeholder="e.g. Sarah Chen"></div>
+  <div class="fl"><label>FROM EMAIL *</label><input class="fi" id="m-email" type="email" placeholder="e.g. sarah@company.com"></div>
+  <div class="fl"><label>SUBJECT *</label><input class="fi" id="m-subj" type="text" placeholder="Subject line…"></div>
+  <div class="fl"><label>BODY *</label><textarea class="fta" id="m-body" placeholder="Paste email body…"></textarea></div>
+  <div class="fl"><label>DATE & TIME</label><input class="fi" id="m-time" type="datetime-local"></div>
+  <div class="mfoot">
+    <button class="bcnl" onclick="closeAddModal()">Cancel</button>
+    <button class="bsave" onclick="submitAdd()">Add to Inbox</button>
+  </div>
+</div>
+</div>
+
+<script>
+// ═══════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════
+let S = {
+  gmail: { connected:false, token:'', email:'', name:'', clientId:'' },
+  zoho:  { connected:false, token:'', email:'', name:'', accountId:'' }
+};
+let emails = [];
+let demoEmails = [];
+let curF='all', curTag='all', selId=null;
+
+// ── STORAGE ──────────────────────────────────
+function persist(){ try{ localStorage.setItem('oi_s3', JSON.stringify(S)); }catch(e){} }
+function hydrate(){ try{ const x=localStorage.getItem('oi_s3'); if(x) S=JSON.parse(x); }catch(e){} }
+function persistEmails(){ try{ localStorage.setItem('oi_em3', JSON.stringify(emails)); }catch(e){} }
+function hydrateEmails(){
+  try{
+    const x=localStorage.getItem('oi_em3');
+    if(x){ const a=JSON.parse(x); emails=a.map(e=>({...e,time:new Date(e.time)})); }
+  }catch(e){}
+}
+
+// ── DEMO EMAILS ──────────────────────────────
+function buildDemo(){
+  const N=Date.now(), H=36e5, D=864e5;
+  demoEmails=[
+    {id:'d1',source:'Gmail',name:'Priya Sharma',email:'priya@acmecorp.com',subject:'Q3 Performance Review — Action Required',
+     preview:'Your self-assessment is due this Friday at 5 PM IST…',
+     body:'Hi,\n\nYour Q3 self-assessment is due by Friday, June 6th at 5 PM IST via the HR portal.\n\nSections to complete:\n• Goal achievement ratings (1–5)\n• Key wins\n• Development areas\n• Peer feedback nominations\n\nBest,\nPriya Sharma\nHR Business Partner',
+     tags:['work'],time:new Date(N-2*H),unread:true,starred:false,attachments:[]},
+    {id:'d2',source:'Zoho',name:'Zoho Billing',email:'billing@zohomail.com',subject:'Invoice #ZH-2026-0541 — Payment Confirmed',
+     preview:'Payment of ₹12,499 for Zoho One annual plan confirmed…',
+     body:'Dear Customer,\n\nPayment confirmed:\nInvoice: #ZH-2026-0541\nPlan: Zoho One Annual\nAmount: ₹12,499\nDate: June 1, 2026\nCard: Visa ••••4821\nNext renewal: June 1, 2027',
+     tags:['finance'],time:new Date(N-5*H),unread:true,starred:false,attachments:[{name:'Invoice_ZH-2026-0541.pdf',size:'42 KB'}]},
+    {id:'d3',source:'Gmail',name:'HDFC Bank Alerts',email:'alerts@hdfcbank.com',subject:'[Alert] Login from unrecognized device',
+     preview:'Login detected from Chennai at 03:41 AM on your account…',
+     body:'Dear Customer,\n\nLogin detected:\nDevice: Chrome on Windows 11\nLocation: Chennai, Tamil Nadu\nTime: 03:41 AM IST, June 1, 2026\nIP: 103.21.58.XX\n\nIf this wasn\'t you, call 1800-202-6161 immediately.\n\nHDFC Bank Security',
+     tags:['security'],time:new Date(N-1*D),unread:true,starred:false,attachments:[]},
+    {id:'d4',source:'Zoho',name:'Vikram Nair (Legal)',email:'v.nair@legalfirm.co.in',subject:'NDA — Signature Required Before June 5',
+     preview:'Please sign the NDA for Project Lighthouse by June 5…',
+     body:'Dear Client,\n\nPlease sign the NDA for Project Lighthouse by June 5, 2026.\n\nKey clauses:\n• 4.2 — 3-year confidentiality period\n• 7 — Jurisdiction: Mumbai\n• 9 — No reverse engineering\n\nUse DocuSign or return scanned copy.\n\nVikram Nair\nSenior Associate',
+     tags:['legal'],time:new Date(N-2*D),unread:false,starred:false,attachments:[{name:'NDA_v2.pdf',size:'126 KB'}]},
+    {id:'d5',source:'Gmail',name:'Aarav Patel',email:'aarav@gmail.com',subject:'Goa trip — July 18–22 confirmed ✈️',
+     preview:'Villa booked in Anjuna — transfer ₹4,000 by June 15…',
+     body:'Yooo!\n\nJuly 18–22 confirmed. Villa in Anjuna booked (sleeps 8, has pool).\n\nPer person: ₹4,000 → GPay: aarav@okaxis by June 15.\n\nBook IndiGo morning slots ASAP!\nAarav',
+     tags:['personal'],time:new Date(N-3*D),unread:false,starred:true,attachments:[]},
+  ];
+}
+
+// ═══════════════════════════════════════
+//  GMAIL OAUTH (popup flow)
+// ═══════════════════════════════════════
+let gmailPopup = null;
+
+function gmailSignIn(){
+  const cid = document.getElementById('gm-cid').value.trim();
+  if(!cid){ toast('Enter your Google OAuth Client ID first.','warn'); return; }
+  S.gmail.clientId = cid;
+  persist();
+
+  const redirectUri = location.origin + location.pathname;
+  const scope = encodeURIComponent('https://www.googleapis.com/auth/gmail.readonly');
+  const state = btoa(Math.random().toString(36));
+  sessionStorage.setItem('oauth_state', state);
+
+  const url = `https://accounts.google.com/o/oauth2/v2/auth`
+    + `?client_id=${encodeURIComponent(cid)}`
+    + `&redirect_uri=${encodeURIComponent(redirectUri)}`
+    + `&response_type=token`
+    + `&scope=${scope}`
+    + `&state=${state}`
+    + `&prompt=consent`;
+
+  // open popup
+  const w=600,h=700,l=screen.width/2-w/2,t=screen.height/2-h/2;
+  gmailPopup = window.open(url,'gmailOAuth',`width=${w},height=${h},left=${l},top=${t}`);
+
+  setGmailUI('ing','Opening Google sign-in…');
+  toast('Sign in with Google in the popup window.','info');
+
+  // poll popup for token in hash
+  const poll = setInterval(()=>{
+    try{
+      if(!gmailPopup || gmailPopup.closed){
+        clearInterval(poll);
+        if(!S.gmail.connected) setGmailUI('none','Sign-in cancelled.');
+        return;
+      }
+      const href = gmailPopup.location.href;
+      if(href && href.includes('access_token=')){
+        clearInterval(poll);
+        gmailPopup.close();
+        const params = new URLSearchParams(href.split('#')[1]||href.split('?')[1]||'');
+        const token = params.get('access_token');
+        const retState = params.get('state');
+        if(!token){ setGmailUI('err','No token received.'); return; }
+        verifyGmailToken(token);
+      }
+    }catch(e){}// cross-origin until redirect
+  },400);
+}
+
+async function verifyGmailToken(token){
+  setGmailUI('ing','Verifying token…');
+  try{
+    const r = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/profile',
+      {headers:{Authorization:`Bearer ${token}`}});
+    if(!r.ok){
+      const e=await r.json().catch(()=>({}));
+      throw new Error(e.error?.message||`Error ${r.status}`);
+    }
+    const d = await r.json();
+    S.gmail.connected = true;
+    S.gmail.token = token;
+    S.gmail.email = d.emailAddress||'';
+    S.gmail.name  = d.emailAddress?.split('@')[0]||'Gmail User';
+    persist();
+    setGmailUI('ok',`Connected as ${d.emailAddress}`);
+    renderAccCards();
+    renderFooter();
+    toast('Gmail connected! Click ↻ to fetch emails.','ok');
+  }catch(e){
+    setGmailUI('err','Verification failed: '+e.message);
+    toast('Gmail error: '+e.message,'err');
+  }
+}
+
+function disconnectGmail(){
+  S.gmail = {connected:false,token:'',email:'',name:'',clientId:S.gmail.clientId};
+  persist();
+  setGmailUI('none','Disconnected');
+  document.getElementById('gm-disc').style.display='none';
+  renderAccCards(); renderFooter();
+  toast('Gmail disconnected.','info');
+}
+
+function setGmailUI(type,msg){
+  const pill=document.getElementById('gm-pill');
+  const dot=document.getElementById('gm-cdot');
+  const txt=document.getElementById('gm-ctext');
+  const disc=document.getElementById('gm-disc');
+  const signinBtn=document.getElementById('gm-signin-btn');
+  const pillMap={none:'asp-none',ok:'asp-ok',err:'asp-err',ing:'asp-ing'};
+  const pillLabel={none:'Not connected',ok:'Connected ✓',err:'Error',ing:'Connecting…'};
+  pill.className='aspill '+pillMap[type]; pill.textContent=pillLabel[type];
+  dot.className='crdot '+type; txt.className='crtext '+type; txt.textContent=msg;
+  disc.style.display=type==='ok'?'':'none';
+  if(type==='ok'){
+    signinBtn.className='google-btn connected';
+    signinBtn.innerHTML=`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg> Signed in as ${S.gmail.email}`;
+    signinBtn.disabled=true;
+  } else {
+    signinBtn.className='google-btn';
+    signinBtn.disabled=false;
+    signinBtn.innerHTML=`<svg viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.33 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.36-8.16 2.36-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.67 14.62 48 24 48z"/></svg> Sign in with Google`;
+  }
+}
+
+// ═══════════════════════════════════════
+//  ZOHO OAUTH
+// ═══════════════════════════════════════
+async function testZoho(){
+  const tok = document.getElementById('zh-token').value.trim();
+  if(!tok){ toast('Enter your Zoho access token.','warn'); return; }
+  const btn=document.getElementById('zh-test-btn');
+  btn.classList.add('testing');
+  setZohoUI('ing','Testing connection…');
+  try{
+    const r = await fetch('https://mail.zoho.com/api/accounts',
+      {headers:{Authorization:`Zoho-oauthtoken ${tok}`}});
+    if(!r.ok){
+      const e=await r.json().catch(()=>({}));
+      if(r.status===401) throw new Error('Token expired or invalid. Please regenerate it.');
+      throw new Error(e?.data?.errorMessage||`Error ${r.status}`);
+    }
+    const d = await r.json();
+    const acc = d?.data?.[0];
+    if(!acc) throw new Error('No Zoho account found.');
+    const emailVal = document.getElementById('zh-email').value.trim()||acc.emailAddress||'';
+    document.getElementById('zh-email').value=emailVal;
+    document.getElementById('zh-accid').value=acc.accountId||'';
+    S.zoho = {connected:true, token:tok, email:emailVal, name:emailVal.split('@')[0]||'Zoho User', accountId:acc.accountId||''};
+    persist();
+    setZohoUI('ok',`Connected as ${emailVal} (Account ID: ${acc.accountId})`);
+    renderAccCards(); renderFooter();
+    toast('Zoho Mail connected! Click ↻ to fetch emails.','ok');
+  }catch(e){
+    setZohoUI('err','Failed: '+e.message);
+    toast('Zoho error: '+e.message,'err');
+  }
+  btn.classList.remove('testing');
+}
+
+function disconnectZoho(){
+  S.zoho={connected:false,token:'',email:'',name:'',accountId:''};
+  persist();
+  setZohoUI('none','Disconnected');
+  document.getElementById('zh-disc').style.display='none';
+  renderAccCards(); renderFooter();
+  toast('Zoho disconnected.','info');
+}
+
+function setZohoUI(type,msg){
+  const pill=document.getElementById('zh-pill');
+  const dot=document.getElementById('zh-cdot');
+  const txt=document.getElementById('zh-ctext');
+  const disc=document.getElementById('zh-disc');
+  const pillMap={none:'asp-none',ok:'asp-ok',err:'asp-err',ing:'asp-ing'};
+  const pillLabel={none:'Not connected',ok:'Connected ✓',err:'Error',ing:'Connecting…'};
+  pill.className='aspill '+pillMap[type]; pill.textContent=pillLabel[type];
+  dot.className='crdot '+type; txt.className='crtext '+type; txt.textContent=msg;
+  disc.style.display=type==='ok'?'':'none';
+}
+
+// ═══════════════════════════════════════
+//  FETCH EMAILS
+// ═══════════════════════════════════════
+async function fetchGmail(){
+  const tok=S.gmail.token;
+  if(!tok) throw new Error('Not authenticated.');
+  const lr=await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages?labelIds=INBOX&maxResults=25',
+    {headers:{Authorization:`Bearer ${tok}`}});
+  if(!lr.ok){
+    const e=await lr.json().catch(()=>({}));
+    if(lr.status===401){ S.gmail.connected=false; S.gmail.token=''; persist(); throw new Error('Gmail token expired. Please reconnect in account settings.'); }
+    throw new Error(e.error?.message||`Gmail API error ${lr.status}`);
+  }
+  const ld=await lr.json();
+  const msgs=ld.messages||[];
+  const out=[];
+  for(const m of msgs.slice(0,25)){
+    try{
+      const mr=await fetch(`https://gmail.googleapis.com/gmail/v1/users/me/messages/${m.id}?format=full`,
+        {headers:{Authorization:`Bearer ${tok}`}});
+      if(!mr.ok) continue;
+      const md=await mr.json();
+      const p=parseGmail(md); if(p) out.push(p);
+    }catch(e){}
+  }
+  return out;
+}
+function parseGmail(m){
+  const hdrs=(m.payload?.headers)||[];
+  const h=n=>hdrs.find(x=>x.name.toLowerCase()===n)?.value||'';
+  const from=h('from');
+  const nm=(from.match(/^"?([^"<]+)"?\s*</)||[])[1]?.trim()||from.split('<')[0].trim()||'Unknown';
+  const em=(from.match(/<([^>]+)>/)||[])[1]||from;
+  const subj=h('subject')||'(no subject)';
+  const time=new Date(h('date')||Date.now());
+  const unread=(m.labelIds||[]).includes('UNREAD');
+  let body='';
+  function ep(p){ if(!p)return; if(p.mimeType==='text/plain'&&p.body?.data){ body=atob(p.body.data.replace(/-/g,'+').replace(/_/g,'/')); }else if(p.parts) p.parts.forEach(ep); }
+  ep(m.payload);
+  if(!body) body=m.snippet||'';
+  body=body.trim();
+  const atts=[];
+  function ea(p){ if(!p)return; if(p.filename&&p.body?.attachmentId) atts.push({name:p.filename,size:fmtSz(p.body.size||0)}); if(p.parts) p.parts.forEach(ea); }
+  ea(m.payload);
+  const tags=autoTag(subj,body);
+  return {id:'g_'+m.id,source:'Gmail',name:nm,email:em,subject:subj,preview:body.slice(0,90).replace(/\n/g,' ')+'…',body,tags,time,unread,starred:false,attachments:atts};
+}
+
+async function fetchZoho(){
+  const tok=S.zoho.token, accId=S.zoho.accountId;
+  if(!tok) throw new Error('Not authenticated.');
+  let aId=accId;
+  if(!aId){
+    const ar=await fetch('https://mail.zoho.com/api/accounts',{headers:{Authorization:`Zoho-oauthtoken ${tok}`}});
+    if(!ar.ok){ if(ar.status===401){ S.zoho.connected=false; persist(); throw new Error('Zoho token expired. Please reconnect.'); } throw new Error(`Zoho API ${ar.status}`); }
+    const ad=await ar.json(); aId=ad?.data?.[0]?.accountId;
+    if(!aId) throw new Error('No Zoho account found.');
+    S.zoho.accountId=aId; persist();
+  }
+  const mr=await fetch(`https://mail.zoho.com/api/accounts/${aId}/messages/view?folderId=INBOX&limit=25&sortBy=date&sortOrder=desc`,
+    {headers:{Authorization:`Zoho-oauthtoken ${tok}`}});
+  if(!mr.ok){
+    if(mr.status===401){ S.zoho.connected=false; persist(); throw new Error('Zoho token expired. Please reconnect.'); }
+    throw new Error(`Zoho API ${mr.status}`);
+  }
+  const md=await mr.json();
+  const msgs=md?.data||[];
+  const out=[];
+  for(const m of msgs.slice(0,25)){
+    try{
+      const dr=await fetch(`https://mail.zoho.com/api/accounts/${aId}/folders/${m.folderId}/messages/${m.messageId}`,
+        {headers:{Authorization:`Zoho-oauthtoken ${tok}`}});
+      if(!dr.ok) continue;
+      const dd=await dr.json();
+      const p=parseZoho(dd?.data||m); if(p) out.push(p);
+    }catch(e){}
+  }
+  return out;
+}
+function parseZoho(m){
+  const from=m.fromAddress||'';
+  const nm=from.split('<')[0].replace(/"/g,'').trim()||m.sender||'Unknown';
+  const em=(from.match(/<([^>]+)>/)||[])[1]||from;
+  const subj=m.subject||'(no subject)';
+  const time=m.receivedTime?new Date(parseInt(m.receivedTime)):new Date();
+  const unread=m.status==='unread'||m.isRead===false;
+  const body=(m.content||m.summary||'').trim();
+  const atts=(m.hasAttachment&&m.attachments)?m.attachments.map(a=>({name:a.attachmentName||'file',size:fmtSz(a.attachmentSize||0)})):[];
+  const tags=autoTag(subj,body);
+  return {id:'z_'+m.messageId,source:'Zoho',name:nm,email:em,subject:subj,preview:body.slice(0,90).replace(/\n/g,' ')+'…',body,tags,time,unread,starred:false,attachments:atts};
+}
+
+function autoTag(subj,body){
+  const t=(subj+' '+body).toLowerCase();
+  if(/invoice|payment|bill|receipt|transaction/.test(t)) return['finance'];
+  if(/nda|contract|legal|agreement|clause|sign/.test(t)) return['legal'];
+  if(/alert|security|login|password|suspicious|unauthorized/.test(t)) return['security'];
+  if(/personal|trip|party|birthday|holiday|vacation/.test(t)) return['personal'];
+  return['work'];
+}
+
+// ── REFRESH BUTTON ───────────────────────────
+async function doRefresh(){
+  const gok=S.gmail.connected, zok=S.zoho.connected;
+  if(!gok&&!zok){ toast('No accounts connected. Click ⚙ to connect Gmail or Zoho.','warn'); openAccModal(); return; }
+
+  const btn=document.getElementById('rfb');
+  const banner=document.getElementById('fbanner');
+  const fmsg=document.getElementById('fmsg');
+  btn.classList.add('spinning');
+  banner.classList.add('show');
+  setSyncState('spin','Syncing…');
+  let newCt=0, errs=[];
+
+  if(gok){
+    fmsg.textContent='Fetching Gmail inbox…';
+    try{
+      const f=await fetchGmail();
+      const ex=new Set(emails.map(e=>e.id));
+      const fresh=f.filter(e=>!ex.has(e.id));
+      emails=[...fresh,...emails];
+      newCt+=fresh.length;
+    }catch(e){ errs.push('Gmail: '+e.message); toast(e.message,'err'); if(!S.gmail.connected) renderAccCards(); }
+  }
+  if(zok){
+    fmsg.textContent='Fetching Zoho Mail inbox…';
+    try{
+      const f=await fetchZoho();
+      const ex=new Set(emails.map(e=>e.id));
+      const fresh=f.filter(e=>!ex.has(e.id));
+      emails=[...fresh,...emails];
+      newCt+=fresh.length;
+    }catch(e){ errs.push('Zoho: '+e.message); toast(e.message,'err'); if(!S.zoho.connected) renderAccCards(); }
+  }
+
+  emails.sort((a,b)=>new Date(b.time)-new Date(a.time));
+  persistEmails();
+  renderList();
+  btn.classList.remove('spinning');
+  banner.classList.remove('show');
+
+  const now=new Date(),pad=n=>String(n).padStart(2,'0');
+  const ts=`${pad(now.getHours())}:${pad(now.getMinutes())}`;
+  if(errs.length&&newCt===0){ setSyncState('err','Sync failed at '+ts); }
+  else{ setSyncState('ok',`Synced ${ts} · ${newCt} new`); if(newCt) toast(`${newCt} new email${newCt>1?'s':''} fetched!`,'ok'); else toast('Inbox up to date.','info'); }
+}
+
+function setSyncState(type,msg){
+  document.getElementById('sdot').className='sdot '+(type==='spin'?'spin':type==='ok'?'ok':type==='err'?'err':'');
+  document.getElementById('stext').textContent=msg;
+}
+
+// ═══════════════════════════════════════
+//  RENDER ACCOUNT CARDS
+// ═══════════════════════════════════════
+function renderAccCards(){
+  const c=document.getElementById('acc-cards');
+  const ge=S.gmail.email||'yourname@gmail.com';
+  const ze=S.zoho.email||'yourname@zohomail.com';
+  c.innerHTML=`
+    <div class="acc-card${S.gmail.connected?' connected':''}" onclick="openAccModal()">
+      <div class="acc-dot dot-g"></div>
+      <div class="acc-info">
+        <div class="acc-email">${ge}</div>
+        <div class="acc-sub ${S.gmail.connected?'ok':'none'}">${S.gmail.connected?'● Connected':'● Click to connect'}</div>
+      </div>
+      <span class="acc-badge bg-g">G</span>
+    </div>
+    <div class="acc-card${S.zoho.connected?' connected':''}" onclick="openAccModal()">
+      <div class="acc-dot dot-z"></div>
+      <div class="acc-info">
+        <div class="acc-email">${ze}</div>
+        <div class="acc-sub ${S.zoho.connected?'ok':'none'}">${S.zoho.connected?'● Connected':'● Click to connect'}</div>
+      </div>
+      <span class="acc-badge bg-z">Z</span>
+    </div>`;
+}
+function renderFooter(){
+  const nm=S.gmail.name||S.zoho.name||'Your Name';
+  const ini=nm.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2)||'YN';
+  document.getElementById('s-av').textContent=ini;
+  document.getElementById('s-fn').textContent=nm;
+  const n=(S.gmail.connected?1:0)+(S.zoho.connected?1:0);
+  document.getElementById('s-fs').textContent=n?`${n} account${n>1?'s':''} connected`:'No accounts connected';
+}
+
+// ═══════════════════════════════════════
+//  MODAL OPEN/CLOSE
+// ═══════════════════════════════════════
+function openAccModal(){
+  // set redirect hint
+  document.getElementById('gm-redirect-hint').textContent=location.origin+location.pathname;
+  // restore fields
+  document.getElementById('gm-cid').value=S.gmail.clientId||'';
+  document.getElementById('zh-email').value=S.zoho.email||'';
+  document.getElementById('zh-token').value=S.zoho.token||'';
+  document.getElementById('zh-accid').value=S.zoho.accountId||'';
+  // restore status indicators
+  if(S.gmail.connected) setGmailUI('ok',`Connected as ${S.gmail.email}`);
+  else setGmailUI('none','Not connected');
+  if(S.zoho.connected) setZohoUI('ok',`Connected as ${S.zoho.email}`);
+  else setZohoUI('none','Not connected');
+  document.getElementById('acc-modal').classList.add('open');
+}
+function closeAccModal(){ document.getElementById('acc-modal').classList.remove('open'); }
+function saveAndClose(){ persist(); renderAccCards(); renderFooter(); closeAccModal(); toast('Settings saved.','info'); }
+document.getElementById('acc-modal').addEventListener('click',function(e){if(e.target===this)closeAccModal();});
+
+// ═══════════════════════════════════════
+//  EMAIL LIST
+// ═══════════════════════════════════════
+const PAL=[['#6c8fff','#0d1a3a'],['#3ecf8e','#0a2e1d'],['#f97316','#2d1500'],['#c084fc','#1e0b33'],['#38bdf8','#091d2d'],['#fb7185','#2d0a12'],['#facc15','#2a2000'],['#a3e635','#1a2400']];
+const colFor=n=>PAL[n.charCodeAt(0)%PAL.length];
+const ini=n=>n.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2)||'??';
+const fmtSz=b=>!b?'':b<1024?b+' B':b<1048576?(b/1024).toFixed(0)+' KB':(b/1048576).toFixed(1)+' MB';
+function fmtS(d){ if(!d)return''; const now=new Date(),diff=now-d,m=Math.floor(diff/60000); if(m<1)return'now'; if(m<60)return m+'m'; if(m<1440)return Math.floor(m/60)+'h'; if(m<10080)return d.toLocaleDateString('en',{weekday:'short'}); return d.toLocaleDateString('en',{month:'short',day:'numeric'}); }
+function fmtL(d){ if(!d)return''; return d.toLocaleDateString('en',{weekday:'long',year:'numeric',month:'long',day:'numeric'})+' at '+d.toLocaleTimeString('en',{hour:'2-digit',minute:'2-digit'}); }
+function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+document.getElementById('nav-menu').addEventListener('click',e=>{
+  const b=e.target.closest('.nav-btn'); if(!b)return;
+  document.querySelectorAll('.nav-btn').forEach(x=>x.classList.remove('active'));
+  b.classList.add('active'); curF=b.dataset.f;
+  const T={all:'All Inbox',unread:'Unread',starred:'Starred',gmail:'Gmail',zoho:'Zoho Mail'};
+  document.getElementById('list-title').textContent=T[curF]||'Inbox';
+  renderList();
+});
+document.getElementById('pills').addEventListener('click',e=>{
+  const p=e.target.closest('.tpill'); if(!p)return;
+  document.querySelectorAll('.tpill').forEach(x=>x.classList.remove('active'));
+  p.classList.add('active'); curTag=p.dataset.tag; renderList();
+});
+
+function getList(){ return emails.length?emails:demoEmails; }
+function getVisible(){
+  const q=document.getElementById('srch').value.toLowerCase();
+  return getList().filter(e=>{
+    if(curF==='unread'&&!e.unread)return false;
+    if(curF==='starred'&&!e.starred)return false;
+    if(curF==='gmail'&&e.source!=='Gmail')return false;
+    if(curF==='zoho'&&e.source!=='Zoho')return false;
+    if(curTag!=='all'&&!e.tags.includes(curTag))return false;
+    if(q&&!e.subject.toLowerCase().includes(q)&&!e.name.toLowerCase().includes(q)&&!e.preview.toLowerCase().includes(q))return false;
+    return true;
+  });
+}
+function updateCounts(){
+  const l=getList();
+  document.getElementById('c-all').textContent=l.length;
+  document.getElementById('c-unread').textContent=l.filter(e=>e.unread).length;
+  document.getElementById('c-starred').textContent=l.filter(e=>e.starred).length;
+  document.getElementById('c-gmail').textContent=l.filter(e=>e.source==='Gmail').length;
+  document.getElementById('c-zoho').textContent=l.filter(e=>e.source==='Zoho').length;
+}
+function renderList(){
+  const vis=getVisible();
+  document.getElementById('list-ct').textContent=vis.length+' emails';
+  const el=document.getElementById('elist');
+  if(!vis.length){ el.innerHTML='<div style="padding:28px;text-align:center;font-size:12.5px;color:var(--text3)">No emails found</div>'; updateCounts(); return; }
+  el.innerHTML=vis.map(e=>{
+    const t=e.time instanceof Date?e.time:new Date(e.time);
+    return`<div class="ei${e.unread?' unread':''}${selId===e.id?' sel':''}" onclick="selectEmail('${e.id}')">
+      <div class="udot"></div>
+      <div class="ei-top">
+        <span class="ei-src ${e.source==='Gmail'?'sg':'sz'}">${e.source==='Gmail'?'G':'Z'}</span>
+        <span class="ei-sndr">${esc(e.name)}</span>
+        <button class="ei-star${e.starred?' on':''}" onclick="event.stopPropagation();toggleStar('${e.id}')" title="Star">★</button>
+        <span class="ei-time">${fmtS(t)}</span>
+      </div>
+      <div class="ei-subj">${esc(e.subject)}</div>
+      <div class="ei-prev">${esc(e.preview||'')}</div>
+      <div class="ei-tags">${(e.tags||[]).map(t=>`<span class="eit">${t}</span>`).join('')}</div>
+    </div>`;
+  }).join('');
+  updateCounts();
+}
+
+function selectEmail(id){
+  selId=id;
+  const l=getList(); const e=l.find(x=>x.id===id); if(!e)return;
+  e.unread=false;
+  if(emails.length) persistEmails();
+  renderList(); renderReading(e);
+}
+
+function renderReading(e){
+  const [fg,bg]=colFor(e.name);
+  const t=e.time instanceof Date?e.time:new Date(e.time);
+  document.getElementById('rtb').style.display='flex';
+  updateTbStar(e.starred);
+  const attH=e.attachments?.length?`<div class="atts">${e.attachments.map(a=>`<div class="attc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><span>${esc(a.name)}</span><span class="attsz">${a.size}</span></div>`).join('')}</div>`:'';
+  document.getElementById('rcontent').innerHTML=`
+    <div class="rbody" id="rbody">
+      <div class="rmb">
+        <div class="rav" style="background:${bg};color:${fg}">${ini(e.name)}</div>
+        <div class="rmi">
+          <div class="rmt">
+            <span class="rname">${esc(e.name)}</span>
+            <span class="rsrc ${e.source==='Gmail'?'sg':'sz'}">${e.source}</span>
+            ${(e.tags||[]).map(t=>`<span class="eit">${t}</span>`).join('')}
+            ${e.starred?'<span style="color:var(--star);font-size:13px">★</span>':''}
+          </div>
+          <div class="reml">&lt;${esc(e.email)}&gt;</div>
+          <div class="rtime"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>${fmtL(t)}</div>
+        </div>
+      </div>
+      <div class="rsubj">${esc(e.subject)}</div>
+      <div class="rbodytext">${esc(e.body||'(no content)')}</div>
+      ${attH}
+    </div>
+    <div class="replybox" id="rbox" style="display:none">
+      <div class="replylbl">REPLY</div>
+      <div class="replyto">To: <span>${esc(e.name)} &lt;${esc(e.email)}&gt;</span></div>
+      <textarea class="replyta" id="rta" placeholder="Write your reply…"></textarea>
+      <div class="replyfoot">
+        <span class="rphint">Demo mode — reply won't be sent</span>
+        <button class="sendbtn" onclick="sendReply()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg> Send
+        </button>
+      </div>
+    </div>`;
+}
+function updateTbStar(on){
+  const b=document.getElementById('tb-star'); if(!b)return;
+  b.innerHTML=`<svg viewBox="0 0 24 24" fill="${on?'var(--star)':'none'}" stroke="${on?'var(--star)':'currentColor'}" stroke-width="2" width="12" height="12"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg> ${on?'Unstar':'Star'}`;
+}
+function toggleStar(id){
+  const l=getList(); const e=l.find(x=>x.id===id); if(!e)return;
+  e.starred=!e.starred;
+  renderList(); if(selId===id) updateTbStar(e.starred);
+  if(emails.length) persistEmails();
+}
+
+function actUnread(){ if(!selId)return; const e=getList().find(x=>x.id===selId); if(e){e.unread=true;renderList();toast('Marked unread.','info');} }
+function actStar(){ if(!selId)return; const e=getList().find(x=>x.id===selId); if(!e)return; e.starred=!e.starred; renderList(); renderReading(e); toast(e.starred?'Starred.':'Unstarred.','info'); }
+function actCopy(){
+  if(!selId)return; const e=getList().find(x=>x.id===selId); if(!e)return;
+  const t=e.time instanceof Date?e.time:new Date(e.time);
+  navigator.clipboard.writeText(`From: ${e.name} <${e.email}>\nSubject: ${e.subject}\nDate: ${fmtL(t)}\n\n${e.body}`).then(()=>toast('Copied!','ok')).catch(()=>toast('Copy failed.','err'));
+}
+function actDelete(){
+  if(!selId)return; emails=emails.filter(x=>x.id!==selId); selId=null;
+  document.getElementById('rtb').style.display='none';
+  document.getElementById('rcontent').innerHTML='<div class="empty-st"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M4 4h16c1.1 0 2 .9 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg><p>Select an email to read</p></div>';
+  renderList(); persistEmails(); toast('Deleted.','info');
+}
+function actReply(){ const b=document.getElementById('rbox'); if(!b)return; const s=b.style.display==='none'; b.style.display=s?'block':'none'; if(s) document.getElementById('rta').focus(); }
+function sendReply(){ const ta=document.getElementById('rta'); if(!ta||!ta.value.trim()){toast('Reply is empty.','warn');return;} ta.value=''; document.getElementById('rbox').style.display='none'; toast('Noted (demo — not sent).','info'); }
+
+// ── ADD MANUAL ───────────────────────────────
+function openAddModal(){
+  const now=new Date(),p=n=>String(n).padStart(2,'0');
+  document.getElementById('m-time').value=`${now.getFullYear()}-${p(now.getMonth()+1)}-${p(now.getDate())}T${p(now.getHours())}:${p(now.getMinutes())}`;
+  ['m-name','m-email','m-subj','m-body'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('add-modal').classList.add('open');
+}
+function closeAddModal(){ document.getElementById('add-modal').classList.remove('open'); }
+document.getElementById('add-modal').addEventListener('click',function(e){if(e.target===this)closeAddModal();});
+function submitAdd(){
+  const name=document.getElementById('m-name').value.trim(), email=document.getElementById('m-email').value.trim();
+  const subj=document.getElementById('m-subj').value.trim(), body=document.getElementById('m-body').value.trim();
+  const src=document.getElementById('m-src').value, tag=document.getElementById('m-tag').value, tv=document.getElementById('m-time').value;
+  if(!name||!email||!subj||!body){toast('Fill all required fields.','warn');return;}
+  const ne={id:'m_'+Date.now(),source:src,name,email,subject:subj,preview:body.replace(/\n/g,' ').slice(0,90)+'…',body,tags:[tag],time:tv?new Date(tv):new Date(),unread:true,starred:false,attachments:[]};
+  emails.unshift(ne); persistEmails(); closeAddModal(); renderList(); selectEmail(ne.id); toast(`Added email from ${name}.`,'ok');
+}
+
+// ── TOAST ────────────────────────────────────
+function toast(msg,type='info'){
+  const el=document.createElement('div');
+  el.className=`toast t-${type}`;
+  el.innerHTML=`<span class="tdot"></span><span>${msg}</span>`;
+  document.getElementById('toasts').appendChild(el);
+  setTimeout(()=>el.remove(),4000);
+}
+
+// ── HANDLE OAUTH REDIRECT (same page) ────────
+function handleOAuthRedirect(){
+  const hash=location.hash;
+  if(!hash.includes('access_token=')) return;
+  const params=new URLSearchParams(hash.slice(1));
+  const token=params.get('access_token');
+  if(token){
+    // clean URL
+    history.replaceState(null,'',location.pathname);
+    verifyGmailToken(token);
+    openAccModal();
+  }
+}
+
+// ── INIT ─────────────────────────────────────
+hydrate();
+hydrateEmails();
+buildDemo();
+renderAccCards();
+renderFooter();
+renderList();
+if(!S.gmail.connected&&!S.zoho.connected){ setSyncState('','Showing demo — connect accounts to fetch real emails'); }
+else{ setSyncState('ok','Accounts configured'); }
+handleOAuthRedirect();
+</script>
+</body>
+</html>
